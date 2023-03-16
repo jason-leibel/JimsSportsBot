@@ -1,0 +1,18 @@
+{
+  "name": "collegeballbot",
+  "version": "1.0.0",
+  "description": "a college basketball assistant application",
+  "main": "index.js",
+  "scripts": {
+    "serve": "node ./index.js"
+  },
+  "author": "Jason Leibel",
+  "license": "ISC",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "discord.js": "^14.8.0",
+    "dotenv": "^16.0.3",
+    "node-html-to-image": "^3.3.0",
+    "puppeteer": "^19.7.5"
+  }
+}
