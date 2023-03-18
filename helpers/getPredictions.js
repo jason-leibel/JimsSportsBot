@@ -1,6 +1,5 @@
 const calculateOdds = require("./calculateOdds");
 const buildStatsSection = require("./buildStatsSection");
-const getBotPredictionSummary = require("./getBotPredictionSummary");
 const {EmbedBuilder} = require("discord.js");
 const fetchConfig = {"referrerPolicy": "no-referrer-when-downgrade", "body": null, "method": "GET"}
 
@@ -154,6 +153,4 @@ module.exports = (channel, url, standingsUrl, teamStatsUrl, sportType, date) => 
             })
         })
     })
-
-    getBotPredictionSummary(channel, url, standingsUrl, sportType, date)
 }

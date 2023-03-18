@@ -22,7 +22,7 @@ module.exports = (homeStats, awayStats, sportType) => {
              ${teamStatIcons['away'][7]} *Blocks Avg:* ${(awayStats['blocks']) ? awayStats['blocks'] : 'NA'}
              ${teamStatIcons['away'][8]} *Fouls Avg:* ${(awayStats['personal_fouls']) ? awayStats['personal_fouls'] : 'NA'}`
         ]
-    } else if (sportType === 'hockey') {
+    } else if (sportType === 'nhl') {
         let hockeyHome = null, hockeyAway = null, goalTendingHome = null, goalTendingAway = null
         if (homeStats['summary']['total']) {
             hockeyHome = homeStats['summary']['total']

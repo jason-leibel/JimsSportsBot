@@ -1,5 +1,5 @@
 require("dotenv").config()
-const {Client, Events, GatewayIntentBits, SlashCommandBuilder} = require("discord.js")
+const {Client, Events, GatewayIntentBits, SlashCommandBuilder, EmbedBuilder} = require("discord.js")
 const getCommandSportIcon = require('./helpers/getCommandSportIcon')
 const getPredictions = require('./helpers/getPredictions')
 const getGamesForDate = require('./helpers/getGamesForDate')
@@ -57,7 +57,7 @@ client.on(Events.InteractionCreate, interaction => {
         }
 
         console.log({strippedType, gamesUrl, standingsUrl, teamStatsUrl})
-        getPredictions(interaction.channel, gamesUrl, standingsUrl, teamStatsUrl, strippedType, date)
+        getPredictions(interaction.channel, gamesUrl, standingsUrl, teamStatsUrl, strippedType, {year, month, day})
     } else if (sportType.includes('summary')) {
         const strippedType = sportType.replace('summary', ''),
             standingsUrl = `https://api.actionnetwork.com/web/v1/standings/${strippedType}`
@@ -75,12 +75,65 @@ client.on(Events.InteractionCreate, interaction => {
         interaction.reply(`${getCommandSportIcon(sportType)} **${sportType.toUpperCase()} SCHEDULED FOR: ** *${year}-${month}-${day}*`)
         getGamesForDate(interaction.channel, `https://api.actionnetwork.com/web/v1/scoreboard/ncaab?period=game&bookIds=15,30,76,75,123,69,68,972,71,247,79&division=D1&date=${date}&tournament=0`, sportType)
     } else if (sportType === 'test') {
-        interaction.reply("Statistics are on route")
+        interaction.reply("Test command run")
+        test(interaction.channel)
     } else {
         interaction.reply(`${getCommandSportIcon(sportType)} **${sportType.toUpperCase()} SCHEDULED FOR: ** *${year}-${month}-${day}*`)
         getGamesForDate(interaction.channel, `https://api.actionnetwork.com/web/v1/scoreboard/${sportType}?period=game&bookIds=15&date=${date}`, sportType)
     }
 })
+
+function test(channel) {
+    const ncaaScoreUrl = "https://sdataprod.ncaa.com/?operationName=scores_current_web&variables=%7B%22seasonYear%22%3A2022%2C%22current%22%3Atrue%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%228838f69e8719e9ec5bdfd74501882be77bdfe8d65f9dbdc52034275a8b10f6e3%22%7D%7D"
+
+    const fetchConfig = {"referrerPolicy": "no-referrer-when-downgrade", "body": null, "method": "GET"}
+    fetch(ncaaScoreUrl, fetchConfig).then(r => r.json()).then(r => {
+        const test = new EmbedBuilder()
+            .setTitle('Live NCAA Scores:')
+            .setColor('#65dcd8')
+        r.data.mmlContests.forEach(game => {
+            const period = (game.currentPeriod === 'HALFTIME' || game.currentPeriod === 'FINAL') ?
+                game.currentPeriod.toLowerCase().charAt(0).toUpperCase()  + game.currentPeriod.toLowerCase().slice(1) : game.currentPeriod,
+                team1 = game.teams[0], team2 = game.teams[1]
+            const hasExcitementAlert = game.hasExcitementAlert
+            if (period !== '') {
+                test.addFields([
+                    {
+                        name: `${hasExcitementAlert ? ':fire:' : `${(period !== 'Final') ? ':arrow_forward:' : ''}`}${team1.nameShort} vs ${team2.nameShort} (${period}${(game.contestClock !== '') ? ` ${game.contestClock}` : ''})`,
+                        value: `*${team1.nameShort.toLowerCase()}:* ${team1.score} *${team2.nameShort.toLowerCase()}:* ${team2.score}`
+                    }
+                ])
+            }
+        })
+        // Update message every 10 seconds.
+        channel.send({ embeds: [test]})
+            .then(msg => {
+                setInterval(() => {
+                    fetch(ncaaScoreUrl, fetchConfig).then(r => r.json()).then(r => {
+                        const exampleEmbed = new EmbedBuilder()
+                            .setTitle('Live NCAA Scores:')
+                            .setColor('#65dcd8')
+                        console.log("Updated!")
+                        r.data.mmlContests.forEach(game => {
+                            const period = (game.currentPeriod === 'HALFTIME' || game.currentPeriod === 'FINAL') ?
+                                game.currentPeriod.toLowerCase().charAt(0).toUpperCase()  + game.currentPeriod.toLowerCase().slice(1) : game.currentPeriod,
+                                team1 = game.teams[0], team2 = game.teams[1]
+                            const hasExcitementAlert = game.hasExcitementAlert
+                            if (period !== '') {
+                                exampleEmbed.addFields([
+                                    {
+                                        name: `${hasExcitementAlert ? ':fire:' : `${(period !== 'Final') ? ':arrow_forward:' : ''}`}${team1.nameShort} vs ${team2.nameShort} (${period}${(game.contestClock !== '') ? ` ${game.contestClock}` : ''})`,
+                                        value: `*${team1.nameShort.toLowerCase()}:* ${team1.score} *${team2.nameShort.toLowerCase()}:* ${team2.score}`
+                                    }
+                                ])
+                            }
+                        })
+                        msg.edit({ embeds: [exampleEmbed] });
+                    })
+                }, 7500)
+            })
+    })
+}
 
 client.login(process.env.TOKEN)
 
