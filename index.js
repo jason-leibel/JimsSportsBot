@@ -14,7 +14,7 @@ const client = new Client({
 })
 client.once("ready", () => {
     console.log("Bot ready...")
-    const sportsCommands = ['ncaab', 'nba', 'nhl', 'nfl', 'ncaaf', 'mma', 'mmapicks', 'nbapicks', 'ncaabpicks', 'nhlpicks', 'nflpicks', 'ncaafpicks', 'nbasummary', 'ncaabsummary', 'nhlsummary'],
+    const sportsCommands = ['ncaab', 'nba', 'nhl', 'nfl', 'ncaaf', 'mma', 'nbapicks', 'ncaabpicks', 'nhlpicks', 'nflpicks', 'ncaafpicks', 'nbasummary', 'ncaabsummary', 'nhlsummary'],
         commandNames = [{ name: 'ncaablive', description: `${getCommandSportIcon('ncaab')}Live scores for NCAAB`}]
     sportsCommands.forEach(name => {
         let description = ''
@@ -55,13 +55,11 @@ client.on(Events.InteractionCreate, interaction => {
         const year = date.substring(0, 4), month = date.substring(4, 6), day = date.substring(6, 8)
         let strippedType = sportType.replace('picks', '')
         interaction.reply(`${getCommandSportIcon(strippedType)} **AI ${sportType.toUpperCase()} GAME PICKS SCHEDULED FOR: ** *${year}-${month}-${day}*`)
-        let gamesUrl = `https://api.actionnetwork.com/web/v1/scoreboard/${strippedType}?period=game&bookIds=15&date=${date}`,
-            standingsUrl = `https://api.actionnetwork.com/web/v1/standings/${strippedType}`,
-            teamStatsUrl = `https://api.actionnetwork.com/web/v1/games/gameId/polling?bookIds=76`
+        let gamesUrl = process.env.API_GENERAL_URL.replace('SPORTTYPE', strippedType).replace('DATE', date),
+            standingsUrl = process.env.API_GENERAL_STANDINGS_URL.replace('SPORTTYPE', strippedType),
+            teamStatsUrl = process.env.API_GAME_URL
         if (strippedType.includes('ncaab')) {
-            gamesUrl = `https://api.actionnetwork.com/web/v1/scoreboard/${strippedType}?period=game&bookIds=15&division=D1&date=${date}&tournament=0`
-        } else if(strippedType.includes('mma')) {
-            gamesUrl = `https://api.actionnetwork.com/web/v1/scoreboard/ufc?period=competition&bookIds=15&date=${date}`
+            gamesUrl = process.env.API_NCAAB_URL.replace('DATE', date)
         }
 
         console.log({strippedType, gamesUrl, standingsUrl, teamStatsUrl})
@@ -71,8 +69,8 @@ client.on(Events.InteractionCreate, interaction => {
         if (date.length !== 8) interaction.reply("The date you supplied was not in the following format: yyyymmdd (ex. 20230101)");
         const year = date.substring(0, 4), month = date.substring(4, 6), day = date.substring(6, 8)
         const strippedType = sportType.replace('summary', ''),
-            standingsUrl = `https://api.actionnetwork.com/web/v1/standings/${strippedType}`
-        let gamesUrl = `https://api.actionnetwork.com/web/v1/scoreboard/${strippedType}?period=game&bookIds=15&date=${date}`
+            standingsUrl = process.env.API_GENERAL_STANDINGS_URL.replace('SPORTTYPE', strippedType)
+        let gamesUrl = process.env.API_GENERAL_URL.replace('SPORTTYPE', strippedType).replace('DATE', date)
         interaction.reply(`${getCommandSportIcon(strippedType)} **${strippedType.toUpperCase()} SUMMARY OF: ** *${year}-${month}-${day}*`)
         if (strippedType.includes('ncaab')) {
             gamesUrl = `https://api.actionnetwork.com/web/v1/scoreboard/${strippedType}?period=game&bookIds=15&division=D1&date=${date}&tournament=0`
@@ -84,24 +82,24 @@ client.on(Events.InteractionCreate, interaction => {
         getBotPredictionSummary(interaction.channel, gamesUrl, standingsUrl, strippedType, {year, month, day})
     } else if (sportType === 'ncaablive') {
         interaction.reply(`${getCommandSportIcon(sportType)} NCAAB Live Scores:`)
-        test(interaction.channel)
+        getLiveScore(interaction.channel)
     } else {
         const date = interaction.options.getString("date")
         if (date.length !== 8) interaction.reply("The date you supplied was not in the following format: yyyymmdd (ex. 20230101)");
         const year = date.substring(0, 4), month = date.substring(4, 6), day = date.substring(6, 8)
-        let gamesUrl = `https://api.actionnetwork.com/web/v1/scoreboard/${sportType}?period=game&bookIds=15&date=${date}`
+        let gamesUrl = process.env.API_GENERAL_URL.replace('SPORTTYPE', sportType).replace('DATE', date)
         if (sportType === 'ncaab') {
-            gamesUrl = `https://api.actionnetwork.com/web/v1/scoreboard/${sportType}?period=game&bookIds=15&division=D1&date=${date}&tournament=0`
+            gamesUrl = process.env.API_NCAAB_URL.replace('DATE', date)
         } else if (sportType === 'mma') {
-            gamesUrl = `https://api.actionnetwork.com/web/v1/scoreboard/ufc?period=competition&bookIds=15&date=${date}`
+            gamesUrl = process.env.API_UFC_URL.replace('DATE', date)
         }
         interaction.reply(`${getCommandSportIcon(sportType)} **${sportType.toUpperCase()} SCHEDULED FOR: ** *${year}-${month}-${day}*`)
         getGamesForDate(interaction.channel, gamesUrl, sportType)
     }
 })
 
-function test(channel) {
-    const ncaaScoreUrl = "https://sdataprod.ncaa.com/?operationName=scores_current_web&variables=%7B%22seasonYear%22%3A2022%2C%22current%22%3Atrue%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%228838f69e8719e9ec5bdfd74501882be77bdfe8d65f9dbdc52034275a8b10f6e3%22%7D%7D"
+function getLiveScore(channel) {
+    const ncaaScoreUrl = process.env.MARCH_MADNESS_LIVE_SCORE_URL
 
     const fetchConfig = {"referrerPolicy": "no-referrer-when-downgrade", "body": null, "method": "GET"}
     fetch(ncaaScoreUrl, fetchConfig).then(r => r.json()).then(r => {

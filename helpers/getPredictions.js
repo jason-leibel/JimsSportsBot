@@ -45,7 +45,7 @@ function getPredictionsForBasketball(channel, teamStatsUrl, standingsUrl, sportT
         const standings = response[1]['standings'],
             homeTeamStanding = standings.filter(standing => standing['team_id'] === game.homeTeamId)[0],
             awayTeamStanding = standings.filter(standing => standing['team_id'] === game.awayTeamId)[0]
-        fetch(teamStatsUrl.replace('gameId', game.id), fetchConfig).then(resp => resp.json()).then(teamStatsResponse => {
+        fetch(teamStatsUrl.replace('GAMEID', game.id), fetchConfig).then(resp => resp.json()).then(teamStatsResponse => {
             const teamStats = teamStatsResponse['team_stats'],
                 awayStats = teamStats['away'],
                 homeStats = teamStats['home'],

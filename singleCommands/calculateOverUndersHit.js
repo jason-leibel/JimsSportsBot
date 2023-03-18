@@ -1,4 +1,3 @@
-const ncaaUrl = "https://api.actionnetwork.com/web/v1/scoreboard/ncaab?period=game&bookIds=15,30,1071,1074,76,75,123,69,68,972,71&division=D1&date=DATE&tournament=0"
 const dates = ['20230316', '20230317', '20230318']
 
 function getOverUnders(url, date) {
@@ -27,6 +26,6 @@ function getOverUnders(url, date) {
 }
 
 dates.forEach(date => {
-    getOverUnders(ncaaUrl.replace('DATE', date), date)
+    getOverUnders(process.env.API_NCAAB_URL.replace('DATE', date), date)
 })
 
