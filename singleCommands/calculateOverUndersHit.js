@@ -1,5 +1,5 @@
 const ncaaUrl = "https://api.actionnetwork.com/web/v1/scoreboard/ncaab?period=game&bookIds=15,30,1071,1074,76,75,123,69,68,972,71&division=D1&date=DATE&tournament=0"
-const dates = ['20230316', '20230317']
+const dates = ['20230316', '20230317', '20230318']
 
 function getOverUnders(url, date) {
     const fetchConfig = {"referrerPolicy": "no-referrer-when-downgrade", "body": null, "method": "GET"}
@@ -8,16 +8,17 @@ function getOverUnders(url, date) {
         let games = [], overHitCount = 0
         r.games.forEach(game => {
             // Get first odds book
-            if (game['boxscore'] && game['status'] === 'complete') {
+            const title = `${game['teams'][0]['full_name']} vs. ${game['teams'][1]['full_name']}`
+            if (game['boxscore'] && game['status'] === 'complete' && games.filter(g => g.gameTitle === title) < 1) {
                 games.push({
                     total: game['odds'][0]['total'],
-                    gameTitle: `${game['teams'][0]['full_name']} vs. ${game['teams'][1]['full_name']}`,
+                    gameTitle: title,
                     totalPointsScored: game['boxscore']['total_away_points'] + game['boxscore']['total_home_points'],
                     didOverHit: (game['boxscore']['total_away_points'] + game['boxscore']['total_home_points']) > game['odds'][0]['total']
                 })
             }
         })
-        games.forEach(game => {
+        games.filter(game => game.gameTitle).forEach(game => {
             if (game.didOverHit) overHitCount += 1
         })
         const year = date.substring(0, 4), month = date.substring(4, 6), day = date.substring(6, 8)

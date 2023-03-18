@@ -16,7 +16,7 @@ module.exports = (homeTeamStanding, awayTeamStanding, standingsUrl) => {
         homeOverUnders = homeRecords.filter(r => r['record_type'] === 'over_under')[0],
         awayOverUnders = awayRecords.filter(r => r['record_type'] === 'over_under')[0]
 
-    if (!standingsUrl.includes('nhl') && !standingsUrl.includes('nfl') && !standingsUrl.includes('ncaaf')) {
+    if (standingsUrl.includes('nba') || standingsUrl.includes('ncaab')) {
         // Points for fewer turnovers
         homeRank += homeRecords.filter(r => r['record_type'] === 'fewer_turnovers')[0]['win_pct']
         awayRank += awayRecords.filter(r => r['record_type'] === 'fewer_turnovers')[0]['win_pct']

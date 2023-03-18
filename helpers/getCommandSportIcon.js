@@ -4,6 +4,7 @@ module.exports = (sport) => {
         case 'nba':
         case 'ncaabpicks':
         case 'nbapicks':
+        case 'ncaablive':
             return '🏀'
         case 'nfl':
         case 'ncaaf':
@@ -15,5 +16,7 @@ module.exports = (sport) => {
         case 'nhl':
         case 'nhlpicks':
             return '🏒'
+        case 'mma':
+            return '🥊'
     }
 }

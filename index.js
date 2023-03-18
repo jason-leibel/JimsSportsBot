@@ -14,8 +14,9 @@ const client = new Client({
 })
 client.once("ready", () => {
     console.log("Bot ready...")
-    const commandNames = ['ncaab', 'nba', 'nhl', 'nfl', 'ncaaf', 'nbapicks', 'ncaabpicks', 'nhlpicks', 'nflpicks', 'ncaafpicks', 'nbasummary', 'ncaabsummary', 'nhlsummary', 'test']
-    commandNames.forEach(name => {
+    const sportsCommands = ['ncaab', 'nba', 'nhl', 'nfl', 'ncaaf', 'mma', 'mmapicks', 'nbapicks', 'ncaabpicks', 'nhlpicks', 'nflpicks', 'ncaafpicks', 'nbasummary', 'ncaabsummary', 'nhlsummary'],
+        commandNames = [{ name: 'ncaablive', description: `${getCommandSportIcon('ncaab')}Live scores for NCAAB`}]
+    sportsCommands.forEach(name => {
         let description = ''
         if (name.includes('summary')) {
             description = `Bot performance summary for ${name.toUpperCase()} on a given date`
@@ -26,7 +27,7 @@ client.once("ready", () => {
         }
         client.application.commands.create(new SlashCommandBuilder()
             .setName(name)
-            .setDescription(description)
+            .setDescription(`${getCommandSportIcon(name)} ${description}`)
             .addStringOption(option =>
                 option
                     .setName("date")
@@ -35,18 +36,23 @@ client.once("ready", () => {
             ), process.env.GUILD_ID)
     })
 
+    commandNames.forEach(command => {
+        client.application.commands.create(new SlashCommandBuilder()
+            .setName(command.name)
+            .setDescription(command.description), process.env.GUILD_ID)
+    })
+
     console.log("Commands Added")
 })
 
 client.on(Events.InteractionCreate, interaction => {
     if (!interaction.isChatInputCommand()) return;
-    const date = interaction.options.getString("date")
-    if (date.length !== 8) interaction.reply("The date you supplied was not in the following format: yyyymmdd (ex. 20230101)");
-
-    const year = date.substring(0, 4), month = date.substring(4, 6), day = date.substring(6, 8),
-        sportType = interaction.commandName
+    const sportType = interaction.commandName
 
     if (sportType.includes('picks')) {
+        const date = interaction.options.getString("date")
+        if (date.length !== 8) interaction.reply("The date you supplied was not in the following format: yyyymmdd (ex. 20230101)");
+        const year = date.substring(0, 4), month = date.substring(4, 6), day = date.substring(6, 8)
         let strippedType = sportType.replace('picks', '')
         interaction.reply(`${getCommandSportIcon(strippedType)} **AI ${sportType.toUpperCase()} GAME PICKS SCHEDULED FOR: ** *${year}-${month}-${day}*`)
         let gamesUrl = `https://api.actionnetwork.com/web/v1/scoreboard/${strippedType}?period=game&bookIds=15&date=${date}`,
@@ -54,11 +60,16 @@ client.on(Events.InteractionCreate, interaction => {
             teamStatsUrl = `https://api.actionnetwork.com/web/v1/games/gameId/polling?bookIds=76`
         if (strippedType.includes('ncaab')) {
             gamesUrl = `https://api.actionnetwork.com/web/v1/scoreboard/${strippedType}?period=game&bookIds=15&division=D1&date=${date}&tournament=0`
+        } else if(strippedType.includes('mma')) {
+            gamesUrl = `https://api.actionnetwork.com/web/v1/scoreboard/ufc?period=competition&bookIds=15&date=${date}`
         }
 
         console.log({strippedType, gamesUrl, standingsUrl, teamStatsUrl})
-        getPredictions(interaction.channel, gamesUrl, standingsUrl, teamStatsUrl, strippedType, {year, month, day})
+        getPredictions(interaction.channel, gamesUrl, standingsUrl, teamStatsUrl, strippedType)
     } else if (sportType.includes('summary')) {
+        const date = interaction.options.getString("date")
+        if (date.length !== 8) interaction.reply("The date you supplied was not in the following format: yyyymmdd (ex. 20230101)");
+        const year = date.substring(0, 4), month = date.substring(4, 6), day = date.substring(6, 8)
         const strippedType = sportType.replace('summary', ''),
             standingsUrl = `https://api.actionnetwork.com/web/v1/standings/${strippedType}`
         let gamesUrl = `https://api.actionnetwork.com/web/v1/scoreboard/${strippedType}?period=game&bookIds=15&date=${date}`
@@ -71,15 +82,21 @@ client.on(Events.InteractionCreate, interaction => {
             gamesUrl
         })
         getBotPredictionSummary(interaction.channel, gamesUrl, standingsUrl, strippedType, {year, month, day})
-    } else if (sportType === 'ncaab') {
-        interaction.reply(`${getCommandSportIcon(sportType)} **${sportType.toUpperCase()} SCHEDULED FOR: ** *${year}-${month}-${day}*`)
-        getGamesForDate(interaction.channel, `https://api.actionnetwork.com/web/v1/scoreboard/ncaab?period=game&bookIds=15,30,76,75,123,69,68,972,71,247,79&division=D1&date=${date}&tournament=0`, sportType)
-    } else if (sportType === 'test') {
-        interaction.reply("Test command run")
+    } else if (sportType === 'ncaablive') {
+        interaction.reply(`${getCommandSportIcon(sportType)} NCAAB Live Scores:`)
         test(interaction.channel)
     } else {
+        const date = interaction.options.getString("date")
+        if (date.length !== 8) interaction.reply("The date you supplied was not in the following format: yyyymmdd (ex. 20230101)");
+        const year = date.substring(0, 4), month = date.substring(4, 6), day = date.substring(6, 8)
+        let gamesUrl = `https://api.actionnetwork.com/web/v1/scoreboard/${sportType}?period=game&bookIds=15&date=${date}`
+        if (sportType === 'ncaab') {
+            gamesUrl = `https://api.actionnetwork.com/web/v1/scoreboard/${sportType}?period=game&bookIds=15&division=D1&date=${date}&tournament=0`
+        } else if (sportType === 'mma') {
+            gamesUrl = `https://api.actionnetwork.com/web/v1/scoreboard/ufc?period=competition&bookIds=15&date=${date}`
+        }
         interaction.reply(`${getCommandSportIcon(sportType)} **${sportType.toUpperCase()} SCHEDULED FOR: ** *${year}-${month}-${day}*`)
-        getGamesForDate(interaction.channel, `https://api.actionnetwork.com/web/v1/scoreboard/${sportType}?period=game&bookIds=15&date=${date}`, sportType)
+        getGamesForDate(interaction.channel, gamesUrl, sportType)
     }
 })
 
