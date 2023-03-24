@@ -1,3 +1,4 @@
+require("dotenv").config()
 const dates = ['20230316', '20230317', '20230318']
 
 function getOverUnders(url, date) {
