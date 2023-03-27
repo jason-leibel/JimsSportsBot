@@ -1,14 +1,17 @@
 require("dotenv").config()
-const {Client, Events, GatewayIntentBits, SlashCommandBuilder, EmbedBuilder} = require("discord.js")
+const {Client, Events, GatewayIntentBits, AttachmentBuilder, EmbedBuilder} = require("discord.js")
 const getCommandSportIcon = require('./helpers/getCommandSportIcon')
 const getPredictions = require('./helpers/getPredictions')
 const getGamesForDate = require('./helpers/getGamesForDate')
 const getBotPredictionSummary = require('./helpers/getBotPredictionSummary')
+const getPlayerPropPicks = require('./helpers/getPlayerPropPicks')
+const getGamesList = require('./helpers/getGamesList')
 const commandsList = require('./commands')
 const fs = require("fs");
 const cheerio = require('cheerio');
+const nodeHtmlToImage = require("node-html-to-image");
 
-let nbaPlayers = []
+let nbaPlayers = [], nhlPlayers = [], nflPlayers = [], mlbPlayers = [], currentDate = '', sportType = ''
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -25,7 +28,18 @@ client.once("ready", () => {
         if (error) console.error(error)
         else nbaPlayers = JSON.parse(data)
     })
-
+    fs.readFile('./dataSource/nhlPlayers.json', 'utf8', function (error, data) {
+        if (error) console.error(error)
+        else nhlPlayers = JSON.parse(data)
+    })
+    fs.readFile('./dataSource/nflPlayers.json', 'utf8', function (error, data) {
+        if (error) console.error(error)
+        else nflPlayers = JSON.parse(data)
+    })
+    fs.readFile('./dataSource/mlbPlayers.json', 'utf8', function (error, data) {
+        if (error) console.error(error)
+        else mlbPlayers = JSON.parse(data)
+    })
     commandsList().forEach(command => {
         client.application.commands.create(command, process.env.GUILD_ID)
     })
@@ -35,8 +49,7 @@ client.once("ready", () => {
 
 client.on(Events.InteractionCreate, interaction => {
     if (interaction.isChatInputCommand()) {
-        const sportType = interaction.options.getString('league')
-
+        sportType = interaction.options.getString('league')
         if (interaction.commandName === 'picks') {
             const date = interaction.options.getString("date")
             if (date.length !== 8) interaction.reply("The date you supplied was not in the following format: yyyymmdd (ex. 20230101)");
@@ -79,14 +92,31 @@ client.on(Events.InteractionCreate, interaction => {
             interaction.reply(`${getCommandSportIcon(sportType)} **${sportType.toUpperCase()} SCHEDULED FOR: ** *${year}-${month}-${day}*`)
             getGamesForDate(interaction.channel, gamesUrl, sportType)
         } else if (interaction.commandName === 'stats') {
-            interaction.reply(`Here are stats for: ${filterName(interaction.options.getString('name')).name}`)
-            getPlayerStats(interaction.options.getString('name'), interaction.channel)
+            interaction.reply(`***Here Are Stats For: *** ${filterName(interaction.options.getString('name')).name}`)
+            getPlayerStats(interaction.options.getString('name'), interaction.channel, sportType)
+        } else if (interaction.commandName === 'props') {
+            currentDate = interaction.options.getString("date")
+            getGamesList(interaction, interaction.options.getString("date"), sportType)
         }
     } else if (interaction.isAutocomplete()) {
         if (interaction.commandName === 'stats') {
-            let suggested = nbaPlayers.filter(v => v.name.toLowerCase().includes(interaction.options.getFocused().toLowerCase()))
+            let suggested = [], sportType = interaction.options.getString('league')
+            if (sportType === 'nba') {
+                suggested = nbaPlayers.filter(v => v.name.toLowerCase().includes(interaction.options.getFocused().toLowerCase()))
+            } else if (sportType === 'nhl') {
+                suggested = nhlPlayers.filter(v => v.name.toLowerCase().includes(interaction.options.getFocused().toLowerCase()))
+            } else if (sportType === 'nfl') {
+                suggested = nflPlayers.filter(v => v.name.toLowerCase().includes(interaction.options.getFocused().toLowerCase()))
+            } else if (sportType === 'mlb') {
+                suggested = mlbPlayers.filter(v => v.name.toLowerCase().includes(interaction.options.getFocused().toLowerCase()))
+            }
             interaction.respond(suggested.splice(0, 25));
         }
+    } else if (interaction.isStringSelectMenu()) {
+        if (currentDate.length !== 8) interaction.reply("The date you supplied was not in the following format: yyyymmdd (ex. 20230101)");
+        const year = currentDate.substring(0, 4), month = currentDate.substring(4, 6), day = currentDate.substring(6, 8)
+        interaction.reply(`***Here Are Player Prop Bets For: *** *${year}-${month}-${day}*`)
+        getPlayerPropPicks(interaction.channel, currentDate, interaction.values, sportType)
     }
 })
 
@@ -105,71 +135,114 @@ function filterName(name) {
     return player
 }
 
-function getPlayerStats(name, channel) {
-    const fetchConfig = {"referrerPolicy": "no-referrer-when-downgrade", "body": null, "method": "GET"},
-        url = `${process.env.PLAYER_STATS_URL}/${name}`
+function getPlayerStats(name, channel, sportType) {
+    const fetchConfig = {"referrerPolicy": "no-referrer-when-downgrade", "body": null, "method": "GET"}
+    const url = `${process.env.PLAYER_STATS_URL}/${name}`
+            .replace('SPORTTYPE', sportType)
     console.log(url)
     fetch(url, fetchConfig).then(c => c.text())
         .then((html) => {
             const $ = cheerio.load(html)
             const playerImg = $('img').attr('src')
-            const colors = extractColors($('style').html())
 
-            fetch(process.env.PLAYER_STATS_TABLE_URL.replace('PLAYERID', filterName(name).id), fetchConfig).then(t => t.json())
-                .then(statsJson => {
-                    console.log(statsJson)
+            fetch(process.env.PLAYER_STATS_TABLE_URL.replace('PLAYERID', filterName(name).id).replace('SPORTTYPE', sportType), fetchConfig).then(t => t.json())
+                .then(async statsJson => {
+                    const color = statsJson['bio']['team']['colors']['backgroundColor']
+                    let description = `The following is information found on: ${filterName(name).name}`
+                    if (statsJson['bio'] && statsJson['bio']['summaryNlg']) {
+                        description = ''
+                        statsJson['bio']['summaryNlg'].forEach(line => {
+                            description += `${line.omitLeadingSpace ? '' : ' '}${line.text}`
+                        })
+                    }
+
                     let embed = new EmbedBuilder()
                         .setTitle(`${filterName(name).name}`)
-                        .setDescription(`Stats`)
+                        .setDescription(description)
                         .setThumbnail(playerImg)
-                        .setColor(`${colors.primaryColor}`)
+                        .setColor(color)
                         .setURL(url)
-
-                    embed.addFields({
-                        name: 'Statistics',
-                        value: 'Here are the main statistics for various time frames:dhsajkhfjkdsfhjshfkjdsfhjksfhKJDHSAKJDHLJKDHJSAKLDJKSAHDSJAKDHJSAJDLHSAKJDSA'
-                    })
-                    // Add grid stats to embed
-                    if (statsJson['stats'] && statsJson['stats']['grid']) {
-                        let titles = { names: [], rowKeys: [] },
-                            fields = []
-                        const grid = statsJson['stats']['grid']
-                        for (let i = 0; i < grid.columns.length; i++) {
-                            titles.names.push(`${i === 0 ? 'Timeframe' : grid.columns[i].title}`)
-                            titles.rowKeys.push(grid.columns[i].rowItemKey)
-                        }
-                        titles.rowKeys.forEach((rowKey, index) => {
-                            let values = []
-                            grid.rows.forEach(row => {
-                                values.push(row[rowKey].display)
-                            })
-                            if (index === 1) fields.push({ name: '\u200B', value: '\u200B' })
-
-                            fields.push({
-                                name: titles.names[index],
-                                value: values.join('\n'),
-                                inline: true
-                            })
-                        })
-
-                        embed.addFields(...fields)
-                    }
 
                     embed.setTimestamp()
                     embed.setFooter({
                         text: `Statistics for ${filterName(name).name}`,
                         icon_url: `${playerImg}`,
                     })
-                    channel.send({embeds: [embed]})
+                    const statObjects = [{key: 'stats', title: 'Overall Statistics'},
+                        {key: 'recentGames', title: 'Last 5 Games'}, {key: 'nextGame', title: 'Next Game'}]
+                    let html = `<html>
+                                    <head>
+                                        <link
+                                        href="https://fonts.googleapis.com/css?family=Roboto"
+                                        rel="stylesheet"
+                                        />
+                                    </head>
+                                    <style>
+                                    table.boostrap4,table.boostrap4 td{font-weight:400;text-align:left;color:#fff}table.boostrap4 td,table.boostrap4 thead th{font-size:1rem;line-height:1.5;border-collapse:collapse;box-sizing:border-box;padding:.75rem;border-top:1px solid #dee2e6}table.boostrap4{font-size:1rem;line-height:1.5;box-sizing:border-box;border-collapse:collapse;width:100%;margin-bottom:1rem;background-color:transparent}table.boostrap4 thead th{color:gray;text-align:inherit;vertical-align:bottom;border-bottom:2px solid #dee2e6}table.boostrap4 td{vertical-align:top}.table_container{max-width:80vw;margin-left:auto;margin-right:auto}body{font-family:Roboto;background-color:#36393f;text-align:center;color:#fff;padding:10px 20px}table{border:5px solid #545454}
+                                    </style>
+                                <body>`
+                    statObjects.forEach(stat => {
+                        if (statsJson[stat.key] && statsJson[stat.key]['grid']) {
+                            const grid = statsJson[stat.key]['grid'],
+                                tables = buildAndSendTables(grid, channel, stat.title)
+                            html += tables[0]
+                            html += tables[1]
+                        }
+                    })
+                    html += `</body></html>`
+
+                    const image = await nodeHtmlToImage({
+                        html,
+                        name: 'test',
+                        quality: 100,
+                        type: 'jpeg',
+                        puppeteerArgs: {
+                            args: ['--no-sandbox'],
+                        },
+                        encoding: 'buffer',
+                        output: 'stats.jpeg'
+                    })
+                    const attachment = new AttachmentBuilder(image, { name: '/stats.jpeg' })
+                    embed.setImage('attachment://stats.jpeg')
+                    channel.send({embeds: [embed], files: [attachment]});
                 })
         })
 }
 
-function extractColors(html) {
-    return {
-        primaryColor: html.substring(html.indexOf('--team-primary-color: #') + 29, html.indexOf('--team-primary-color: #') + 22),
-        secondaryColor: html.substring(html.indexOf('--team-secondary-color: #') + 31, html.indexOf('--team-secondary-color: #') + 24)
+function buildAndSendTables(grid, channel, title) {
+    let titles = { names: [], rowKeys: [] }
+    for (let i = 0; i < grid.columns.length; i++) {
+        titles.names.push(`${i === 0 ? 'Timeframe' : grid.columns[i].title}`)
+        titles.rowKeys.push(grid.columns[i].rowItemKey)
     }
+    const nmi = Math.ceil(titles.names.length / 2),
+        namesf = titles.names.splice(0, nmi),
+        namesl = titles.names.splice(-nmi),
+        rmi = Math.ceil(titles.rowKeys.length / 2),
+        rowkf = titles.rowKeys.splice(0, rmi),
+        rowkl = titles.rowKeys.splice(-rmi);
+
+    const buildTable = (headers, rowKeys, tableTitle) => {
+        let table = `<h1>${tableTitle}</h1><table class="boostrap4"><thead><tr>`
+        headers.forEach(header => {
+            table += `<td>${header}</td>`
+        })
+        table += `</tr><tbody>`
+
+
+        grid.rows.forEach(row => {
+            table += '<tr>'
+            rowKeys.forEach((rowKey) => {
+                table += `<td>${row[rowKey].display}</td>`
+            })
+            table += '</tr>'
+        })
+        return `${table}</tbody></table>`
+    }
+    return [
+        buildTable(namesf, rowkf, title),
+        buildTable(namesl, rowkl, `${title} Part 2`)
+    ]
 }
 
 client.login(process.env.TOKEN)

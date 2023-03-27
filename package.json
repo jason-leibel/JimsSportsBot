@@ -9,6 +9,7 @@
   "author": "Jason Leibel",
   "license": "ISC",
   "dependencies": {
+    "ascii-table": "^0.0.9",
     "cheerio": "^1.0.0-rc.12",
     "discord.js": "^14.8.0",
     "dotenv": "^16.0.3",
