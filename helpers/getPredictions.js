@@ -76,6 +76,8 @@ function getPredictionsForBasketball(channel, teamStatsUrl, standingsUrl, sportT
                 underdogWinRecord: (game.homeTeamMl < game.awayTeamMl) ? (awayRecords.filter(r => r['record_type'] === 'dog')[0]) : (homeRecords.filter(r => r['record_type'] === 'dog')[0])
             }
 
+            console.log(projectedWinner)
+
             const statsSection = buildStatsSection(homeStats, awayStats, sportType)
 
             const prediction = new EmbedBuilder()
@@ -138,16 +140,6 @@ function getPredictionsForBasketball(channel, teamStatsUrl, standingsUrl, sportT
                         name: '\u200B', value: '\u200B'
                     },
                     {
-                        name: `${game.homeTeamName} Statistics`,
-                        value: statsSection[0],
-                        inline: true
-                    },
-                    {
-                        name: `${game.awayTeamName} Statistics`,
-                        value: statsSection[1],
-                        inline: true
-                    },
-                    {
                         name: `Wins/Losses as the underdog for: ${projectedWinner.underdogName} (Based on ML)`,
                         value: `*** Wins: *** ${projectedWinner.underdogWinRecord['wins']} *** Losses: *** ${projectedWinner.underdogWinRecord['losses']}`
                     },
@@ -161,6 +153,19 @@ function getPredictionsForBasketball(channel, teamStatsUrl, standingsUrl, sportT
                     text: `Predicted winner is ${projectedWinner.teamName}`,
                     iconURL: `${projectedWinner.teamLogo}`
                 });
+            if (statsSection[0] !== '' && statsSection[1] !== '') {
+                prediction.addFields(
+                    {
+                        name: `${game.homeTeamName} Statistics`,
+                        value: statsSection[0],
+                        inline: true
+                    },
+                    {
+                        name: `${game.awayTeamName} Statistics`,
+                        value: statsSection[1],
+                        inline: true
+                    })
+            }
 
             channel.send({embeds: [prediction]});
         })

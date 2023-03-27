@@ -1,29 +1,8 @@
 const nodeHtmlToImage = require('node-html-to-image')
+const {EmbedBuilder, AttachmentBuilder} = require("discord.js");
 
 module.exports = async (channel, games, sport) => {
-    let color = 'orange'
-    switch (sport) {
-        case 'nba':
-            color = 'orange'
-            break
-        case 'nfl':
-            color = 'red'
-            break
-        case 'nhl':
-            color = 'green'
-            break
-        case 'ncaab':
-            color = 'blue'
-            break
-        case 'ncaaf':
-            color = 'yellow'
-            break
-        case 'mlb':
-            color = 'purple'
-            break
-    }
-
-    let _htmlTemplate = `<!DOCTYPE html>
+    let html = `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -38,7 +17,6 @@ module.exports = async (channel, games, sport) => {
         font-family: "Roboto";
         font-size: 22px;
         background-color: rgb(31, 31, 31);
-        border-left: ${color} solid 5px;
         width: 100%;
       }
       .titleContainer {
@@ -78,7 +56,7 @@ module.exports = async (channel, games, sport) => {
         `;
     const gamesLength = games.length
     games.forEach((game, index) => {
-        _htmlTemplate += `
+        html += `
         <tr class="teamOne teams">
           <td>
             <img src="${game.homeTeamLogo}" />
@@ -100,18 +78,22 @@ module.exports = async (channel, games, sport) => {
           <td class="odds">${(game.under !== null) ? `U ${game.under}` : 'NA'}</td>
         </tr>
         `
-        if (gamesLength !== index + 1) _htmlTemplate += '<tr><td colspan="5" style="border-bottom: white solid 1px"></td></tr>'
+        if (gamesLength !== index + 1) html += '<tr><td colspan="5" style="border-bottom: white solid 1px"></td></tr>'
     })
 
-    _htmlTemplate += `
+    html += `
       </table>
     </div>
   </body>
 </html>
 `
+    let embed = new EmbedBuilder()
+        .setTitle(`${sport.toUpperCase()} Games`)
+        .setColor('#42ecf5')
 
-    const images = await nodeHtmlToImage({
-        html: _htmlTemplate,
+    embed.setTimestamp()
+    const image = await nodeHtmlToImage({
+        html,
         quality: 100,
         type: 'jpeg',
         puppeteerArgs: {
@@ -119,5 +101,7 @@ module.exports = async (channel, games, sport) => {
         },
         encoding: 'buffer',
     })
-    channel.send({files: [images]})
+    const attachment = new AttachmentBuilder(image, {name: '/games.jpeg'})
+    embed.setImage('attachment://games.jpeg')
+    channel.send({embeds: [embed], files: [attachment]});
 }

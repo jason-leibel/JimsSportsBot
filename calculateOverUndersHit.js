@@ -1,5 +1,5 @@
 require("dotenv").config()
-const dates = ['20230316', '20230317', '20230318']
+const dates = ['20230316', '20230317', '20230318', '20230326']
 
 function getOverUnders(url, date) {
     const fetchConfig = {"referrerPolicy": "no-referrer-when-downgrade", "body": null, "method": "GET"}

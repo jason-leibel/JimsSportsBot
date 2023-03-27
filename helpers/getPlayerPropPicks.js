@@ -1,6 +1,8 @@
 require('dotenv').config()
 const stylesheet = require('./pickStylesheet.css')
 const nodeHtmlToImage = require("node-html-to-image");
+const {AttachmentBuilder, EmbedBuilder} = require("discord.js");
+const filterName = require("./filterPlayerName");
 const fetchConfig = {
     "referrerPolicy": "no-referrer-when-downgrade",
     "body": null,
@@ -33,6 +35,7 @@ module.exports = (channel, date, values, sportType) => {
                 channel.send("It appears there are no prop picks available yet, check again later.")
                 return;
             }
+
             data['playerProps'].forEach(playerProp => {
                 const lines = playerProp['lines'][0]['lines'],
                     rules = playerProp['rules'],
@@ -45,6 +48,7 @@ module.exports = (channel, date, values, sportType) => {
                         awayTeamName: game['teams'][1]['display_name'],
                         homeTeamLogo: game['teams'][0]['logo'],
                         awayTeamLogo: game['teams'][1]['logo'],
+                        homeTeamColor: game['teams'][0]['primary_color'],
                         typeOverUnder: rules['options'][lines['option_type_id']]['option_type'],
                         type: playerProp['custom_pick_type_display_name'],
                         value: (lines['value']) ? `${rules['options'][lines['option_type_id']]['abbreviation']}${lines['value']}` : null,
@@ -91,8 +95,18 @@ module.exports = (channel, date, values, sportType) => {
             }
 
             html += `</tbody></table></body></html>`
+            let embed = new EmbedBuilder()
+                .setTitle(`Player Props for: ${props[0].homeTeamName} vs. ${props[0].awayTeamName}`)
+                .setDescription(`The following are player prop picks generated for: ${props[0].homeTeamName} @ ${props[0].awayTeamName}`)
+                .setThumbnail(props[0].homeTeamLogo)
+                .setColor(props[0].homeTeamColor)
 
-            const images = await nodeHtmlToImage({
+            embed.setTimestamp()
+            embed.setFooter({
+                text: `Player Props for ${props[0].homeTeamName} @ ${props[0].awayTeamName}`,
+                icon_url: `${props[0].awayTeamLogo}`,
+            })
+            const image = await nodeHtmlToImage({
                 html: html,
                 quality: 100,
                 type: 'jpeg',
@@ -101,7 +115,9 @@ module.exports = (channel, date, values, sportType) => {
                 },
                 encoding: 'buffer',
             })
-            channel.send({files: [images]})
+            const attachment = new AttachmentBuilder(image, {name: '/props.jpeg'})
+            embed.setImage('attachment://props.jpeg')
+            channel.send({embeds: [embed], files: [attachment]});
 
         })
 }

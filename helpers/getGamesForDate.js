@@ -25,6 +25,10 @@ module.exports = (channel, url, sport) => {
                 console.log(games)
                 sendGamesSummaryMMA(channel, games, sport).catch(console.error)
             } else {
+                if (!data['games']) {
+                    channel.send('It seems there was no game data available for this date, please verify you entered the date correctly. (yyyymmdd)')
+                    return
+                }
                 data.games.forEach(game => {
                     const homeTeam = game.teams.filter(team => team.id === game['home_team_id'])[0]
                     const awayTeam = game.teams.filter(team => team.id === game['away_team_id'])[0]
