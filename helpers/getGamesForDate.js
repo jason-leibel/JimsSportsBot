@@ -8,21 +8,22 @@ module.exports = (channel, url, sport) => {
             const games = []
             if (sport === 'mma') {
                 data.competitions.forEach(fight => {
-                    const homeFighter = fight.competitors.filter(team => team['side'] === 'home')[0]
-                    const awayFighter = fight.competitors.filter(team => team['side'] === 'away')[0],
-                        odds = fight['odds'][0]
+                    if (fight['status'] !== 'cancelled') {
+                        const homeFighter = fight.competitors.filter(team => team['side'] === 'home')[0]
+                        const awayFighter = fight.competitors.filter(team => team['side'] === 'away')[0],
+                            odds = fight['odds'][0]
 
-                    games.push({
-                        homeFighterName: homeFighter['player']['full_name'],
-                        awayFighterName: awayFighter['player']['full_name'],
-                        homeMl: (odds['ml_home'] !== null) ? (odds['ml_home'] > 0) ? `+${odds['ml_home']}` : odds['ml_home'] : 'NA',
-                        awayMl: (odds['ml_away'] !== null) ? (odds['ml_away'] > 0) ? `+${odds['ml_away']}` : odds['ml_away'] : 'NA',
-                        over: `O ${odds['total']}`,
-                        under: `U ${odds['total']}`
-                    })
+                        games.push({
+                            homeFighterName: homeFighter['player']['full_name'],
+                            awayFighterName: awayFighter['player']['full_name'],
+                            homeMl: (odds['ml_home'] !== null) ? (odds['ml_home'] > 0) ? `+${odds['ml_home']}` : odds['ml_home'] : 'NA',
+                            awayMl: (odds['ml_away'] !== null) ? (odds['ml_away'] > 0) ? `+${odds['ml_away']}` : odds['ml_away'] : 'NA',
+                            over: `O ${odds['total']}`,
+                            under: `U ${odds['total']}`
+                        })
+                    }
                 })
 
-                console.log(games)
                 sendGamesSummaryMMA(channel, games, sport).catch(console.error)
             } else {
                 if (!data['games']) {

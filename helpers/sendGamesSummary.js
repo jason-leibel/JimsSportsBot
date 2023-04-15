@@ -103,5 +103,7 @@ module.exports = async (channel, games, sport) => {
     })
     const attachment = new AttachmentBuilder(image, {name: '/games.jpeg'})
     embed.setImage('attachment://games.jpeg')
-    channel.send({embeds: [embed], files: [attachment]});
+    if (gamesLength !== 0) {
+        channel.send({embeds: [embed], files: [attachment]});
+    }
 }

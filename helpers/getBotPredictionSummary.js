@@ -3,6 +3,7 @@ const calculateOdds = require("./calculateOdds");
 const fetchConfig = {"referrerPolicy": "no-referrer-when-downgrade", "body": null, "method": "GET"}
 
 module.exports = (channel, url, standingsUrl, sportType, date) => {
+    console.log(standingsUrl)
     Promise.all([
         fetch(url, fetchConfig).then(resp => resp.json()),
         fetch(standingsUrl, fetchConfig).then(resp => resp.json())
@@ -45,16 +46,18 @@ module.exports = (channel, url, standingsUrl, sportType, date) => {
             values.push(`*** ${projectedWinner.teamName} *** ML: *${projectedWinner.winnerMl}* ${(projectedWinner.didWin !== null) ? projectedWinner.didWin ? ':white_check_mark:' : ':x:' : ':soon:'}`)
         })
 
-        summary.addFields([
-            {
-                name: `${sportType.toUpperCase()} Games`,
-                value: values.join('\n')
-            },
-            {
-                name: 'Overall Summary:',
-                value: `Out of ${projectedWinners.filter(w => w.didWin !== null).length} games there were ${winnerQty} winners. The average: ${winnerAverage}%`
-            }
-        ])
-        channel.send({embeds: [summary]})
+        if (values.length !== 0) {
+            summary.addFields([
+                {
+                    name: `${sportType.toUpperCase()} Games`,
+                    value: values.join('\n')
+                },
+                {
+                    name: 'Overall Summary:',
+                    value: `Out of ${projectedWinners.filter(w => w.didWin !== null).length} games there were ${winnerQty} winners. The average: ${winnerAverage}%`
+                }
+            ])
+            channel.send({embeds: [summary]})
+        }
     })
 }
