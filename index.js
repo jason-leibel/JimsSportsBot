@@ -79,15 +79,15 @@ client.on(Events.InteractionCreate, interaction => {
 client.login(process.env.TOKEN)
 
 function scheduleCommands() {
-    const channels = [{name: "🏈—college-picks—🏀", values: ['ncaab', 'ncaaf']},
-            {name: "🏈——nfl-picks——🏈", values: ['nfl']}, {name: "🏒——nhl-picks——🏒", values: ['nhl']},
-            {name: "🏀——nba-picks——🏀", values: ['nba']}, {name: "⚽—soccer—picks—⚽", values: ['soccer']},
-            {name: "🥊—-mma-picks—-🥊", values: ['mma']}],
+    const channels = [{name: "🏈—college-picks—🏀", values: ['ncaab', 'ncaaf'], id: '1085271102126837851'},
+            {name: "🏈——nfl-picks——🏈", values: ['nfl'], id: '1085270362792677407'}, {name: "🏒——nhl-picks——🏒", values: ['nhl'], id: '1085270430484533328'},
+            {name: "🏀——nba-picks——🏀", values: ['nba'], id: '1085270577746550895'}, {name: "⚽—soccer—picks—⚽", values: ['soccer'], id: '1087777168483954809'},
+            {name: "🥊—-mma-picks—-🥊", values: ['mma'], id: '1085272087431753819'}],
         today = moment().format("YYYYMMDD")
     channels.forEach(channelList => {
         channelList.values.forEach(type => {
             const urls = getApiUrls({commandName: 'games'}, today, type, false)
-            const channel = client.channels.cache.find(channel => channel.name === channelList.name)
+            const channel = client.channels.cache.find(channel => channel.id === channelList.id)
             if (channel) {
                 getGamesForDate(channel, urls.gamesUrl, urls.sportType)
             }
