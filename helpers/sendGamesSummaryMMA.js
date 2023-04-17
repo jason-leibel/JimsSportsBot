@@ -82,15 +82,17 @@ module.exports = async (channel, games, sport) => {
   </body>
 </html>
 `
-
-    const images = await nodeHtmlToImage({
-        html: _htmlTemplate,
-        quality: 100,
-        type: 'jpeg',
-        puppeteerArgs: {
-            args: ['--no-sandbox'],
-        },
-        encoding: 'buffer',
-    })
-    channel.send({files: [images]})
+    if (gamesLength > 0) {
+        const images = await nodeHtmlToImage({
+            html: _htmlTemplate,
+            quality: 100,
+            type: 'jpeg',
+            puppeteerArgs: {
+                args: ['--no-sandbox'],
+                executablePath: `/usr/bin/chromium-browser`
+            },
+            encoding: 'buffer',
+        })
+        channel.send({files: [images]})
+    }
 }

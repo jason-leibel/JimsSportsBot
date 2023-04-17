@@ -112,6 +112,7 @@ module.exports = (channel, date, values, sportType) => {
                 type: 'jpeg',
                 puppeteerArgs: {
                     args: ['--no-sandbox'],
+                    executablePath: `/usr/bin/chromium-browser`
                 },
                 encoding: 'buffer',
             })

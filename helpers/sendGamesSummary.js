@@ -98,6 +98,7 @@ module.exports = async (channel, games, sport) => {
         type: 'jpeg',
         puppeteerArgs: {
             args: ['--no-sandbox'],
+            executablePath: `/usr/bin/chromium-browser`
         },
         encoding: 'buffer',
     })

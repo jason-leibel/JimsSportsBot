@@ -9,7 +9,6 @@ const getApiUrls = require('./helpers/getApiUrls')
 const getPlayerStats = require('./helpers/getPlayerStats')
 const filterName = require('./helpers/filterPlayerName')
 const commandsList = require('./commands')
-const schedule = require('node-schedule');
 const fs = require("fs");
 const moment = require("moment");
 
@@ -81,19 +80,17 @@ client.login(process.env.TOKEN)
 
 function scheduleCommands() {
     const channels = [{name: "🏈—college-picks—🏀", values: ['ncaab', 'ncaaf']},
-        {name: "🏈——nfl-picks——🏈", values: ['nfl']}, {name: "🏒——nhl-picks——🏒", values: ['nhl']},
-        {name: "🏀——nba-picks——🏀", values: ['nba']}, {name: "⚽—soccer—picks—⚽", values: ['soccer']},
-        {name: "🥊—-mma-picks—-🥊", values: ['mma']}],
+            {name: "🏈——nfl-picks——🏈", values: ['nfl']}, {name: "🏒——nhl-picks——🏒", values: ['nhl']},
+            {name: "🏀——nba-picks——🏀", values: ['nba']}, {name: "⚽—soccer—picks—⚽", values: ['soccer']},
+            {name: "🥊—-mma-picks—-🥊", values: ['mma']}],
         today = moment().format("YYYYMMDD")
-    schedule.scheduleJob('0 7 * * *', function () {
-        channels.forEach(channelList => {
-            channelList.values.forEach(type => {
-                const urls = getApiUrls({commandName: 'games'}, today, type, false)
-                const channel = client.channels.cache.find(channel => channel.name === channelList.name)
-                if (channel) {
-                    getGamesForDate(channel, urls.gamesUrl, urls.sportType)
-                }
-            })
+    channels.forEach(channelList => {
+        channelList.values.forEach(type => {
+            const urls = getApiUrls({commandName: 'games'}, today, type, false)
+            const channel = client.channels.cache.find(channel => channel.name === channelList.name)
+            if (channel) {
+                getGamesForDate(channel, urls.gamesUrl, urls.sportType)
+            }
         })
-    });
+    })
 }
